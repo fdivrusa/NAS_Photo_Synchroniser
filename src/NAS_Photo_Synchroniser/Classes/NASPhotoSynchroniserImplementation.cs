@@ -4,35 +4,46 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace NAS_Photo_Synchroniser.Classes
 {
     public class NASPhotoSynchroniserImplementation : INASPhotoSynchroniserImplementation
     {
+        private static readonly StringBuilder logMessage = new();
+
         public void DoWork()
         {
             try
             {
+                LogMessage($"Beginning process at {DateTime.Now}");
+
                 ReadConfiguration();
                 var foldersToProcess = GetAllSubFoldersFromSource(LocalSettings.SourceFolder);
 
-                Console.WriteLine($"Number of folders found : {foldersToProcess.Count}");
+                LogMessage($"Number of folders found : {foldersToProcess.Count}");
 
                 if (foldersToProcess != null)
                 {
                     ClearListFromExcludedFolder(foldersToProcess);
 
-                    Console.WriteLine($"Number of folders to process {foldersToProcess.Count}");
+                    LogMessage($"Number of folders to process {foldersToProcess.Count}");
 
                     foreach (var folder in foldersToProcess)
                     {
+                        LogMessage($"Processing folder {folder}");
                         ProcessFolder(folder);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occured during the process of the application :\n {ex.Message}");
+                LogMessage($"An error occured during the process of the application :\n {ex.Message}");
+            }
+            finally
+            {
+                LogMessage($"Ending process at {DateTime.Now}");
+                File.WriteAllText(Path.Combine(Directory.GetCurrentDirectory(), $"NasPhotoSynchroniser_Logs_{DateTime.Now:yyyyMMdd_hhmmss}.txt"), logMessage.ToString());
             }
         }
 
@@ -41,7 +52,7 @@ namespace NAS_Photo_Synchroniser.Classes
         /// </summary>
         private static void ReadConfiguration()
         {
-            Console.WriteLine("Reading configuration");
+            LogMessage("Reading configuration");
 
             LocalSettings.SourceFolder = ConfigurationManager.AppSettings["SourceFolder"];
 
@@ -57,14 +68,14 @@ namespace NAS_Photo_Synchroniser.Classes
                 throw new Exception("AppSettings 'DestinationFolder' is empty or missing form configuration");
             }
 
-            LocalSettings.AcceptedFiles = ConfigurationManager.AppSettings["AcceptedFiles"].Split(";").ToList();
+            LocalSettings.AcceptedFiles = ConfigurationManager.AppSettings["AcceptedFiles"]?.Split(";").ToList();
 
             if (LocalSettings.AcceptedFiles == null || LocalSettings.AcceptedFiles.Count == 0)
             {
                 throw new Exception("AppSettings 'AcceptedFiles' is empty or missing from configuration");
             }
 
-            LocalSettings.ShouldDeleteFolders = ConfigurationManager.AppSettings["ShouldDeleteFolders"] == "False";
+            LocalSettings.ShouldDeleteFolders = ConfigurationManager.AppSettings["ShouldDeleteFolders"].Equals("True", StringComparison.OrdinalIgnoreCase);
             LocalSettings.ExludedFolders = ConfigurationManager.AppSettings["ExcludedFolders"]?.Split(";")?.ToList();
         }
 
@@ -75,7 +86,7 @@ namespace NAS_Photo_Synchroniser.Classes
         /// <returns></returns>
         private static List<string> GetAllSubFoldersFromSource(string sourceFolder)
         {
-            Console.WriteLine("Get all directories from source");
+            LogMessage("Get all directories from source");
             return Directory.GetDirectories(sourceFolder).ToList();
         }
 
@@ -90,7 +101,7 @@ namespace NAS_Photo_Synchroniser.Classes
             //TODO : Exclude uneeded files
             //ExcludeUneededFilesFromList(files);
 
-            MoveFileToDestinationFolder(files);
+            MoveFileToDestinationFolder(files, folder);
         }
 
         /// <summary>
@@ -100,6 +111,7 @@ namespace NAS_Photo_Synchroniser.Classes
         /// <returns></returns>
         private static List<string> GetAllFilesFromFolder(string folder)
         {
+            LogMessage($"Getting all files from folder {folder} to process");
             return Directory.GetFiles(folder).ToList();
         }
 
@@ -109,7 +121,7 @@ namespace NAS_Photo_Synchroniser.Classes
         /// <param name="foldersToProcess"></param>
         private static void ClearListFromExcludedFolder(List<string> foldersToProcess)
         {
-            Console.WriteLine("Exclude excluded folders from initial list");
+            LogMessage("Exclude excluded folders from initial list");
             LocalSettings.ExludedFolders.ForEach(x => foldersToProcess.Remove(Path.Combine(LocalSettings.SourceFolder, x)));
         }
 
@@ -119,32 +131,45 @@ namespace NAS_Photo_Synchroniser.Classes
         /// <param name="files"></param>
         private static void ExcludeUneededFilesFromList(List<string> files)
         {
-            foreach (var acceptedFile in LocalSettings.AcceptedFiles)
-            {
-                files.RemoveAll(x => !acceptedFile.Any(y => x.Contains(y)));
-            }
+
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="files"></param>
-        private static void MoveFileToDestinationFolder(List<string> files)
+        private static void MoveFileToDestinationFolder(List<string> files, string folder)
         {
+            LogMessage($"Number of files to process in the folder {folder} : {files.Count}");
+
             foreach (var file in files)
             {
                 var fileInfo = new FileInfo(file);
-                string fileCreationYear = fileInfo.CreationTime.Date.Year.ToString();
+                string fileCreationYear = fileInfo.LastWriteTimeUtc.Date.Year.ToString();
                 var fileDestination = Path.Combine(LocalSettings.DestinationFolder, fileCreationYear, fileInfo.Name);
-                if (Directory.GetDirectories(LocalSettings.DestinationFolder).ToList().Contains(fileCreationYear))
+                if (!Directory.GetDirectories(LocalSettings.DestinationFolder).ToList().Contains(Path.Combine(LocalSettings.DestinationFolder, fileCreationYear)))
                 {
-                    Console.WriteLine($"Folder {fileCreationYear} does not exists yet, creation of the folder");
+                    LogMessage($"Folder {fileCreationYear} does not exists yet, creation of the folder");
                     Directory.CreateDirectory(Path.Combine(LocalSettings.DestinationFolder, fileCreationYear));
                 }
 
-                Console.WriteLine($"Moving file {file} to {fileDestination}");
+                LogMessage($"Moving file {file} to {LocalSettings.DestinationFolder}");
                 File.Move(file, fileDestination);
             }
+
+            if (Directory.GetFiles(folder).Length == 0 && 
+                Directory.GetDirectories(folder).Length == 0 && 
+                LocalSettings.ShouldDeleteFolders)
+            {
+                LogMessage($"folder {folder} is empty, deleting folder");
+                Directory.Delete(folder);
+            }
+        }
+
+        private static void LogMessage(string message)
+        {
+            logMessage.AppendLine(message);
+            Console.WriteLine(message);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace NAS_Photo_Synchroniser
     {
         static void Main(string[] args)
         {
-            //Should never happens as the args is initialiazed to 0
+            //Should never happens as the args array is initialiazed to length 0
             if (args is null)
             {
                 Console.WriteLine("args parameter is null");
