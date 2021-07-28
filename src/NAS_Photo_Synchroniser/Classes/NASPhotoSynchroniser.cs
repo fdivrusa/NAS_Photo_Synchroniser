@@ -1,9 +1,10 @@
 ﻿using NAS_Photo_Synchroniser.Classes;
+using NAS_Photo_Synchroniser.Interfaces;
 using System;
 
 namespace NAS_Photo_Synchroniser
 {
-    public class Program
+    public class NASPhotoSynchroniser
     {
         static void Main(string[] args)
         {
@@ -14,7 +15,7 @@ namespace NAS_Photo_Synchroniser
                 throw new ArgumentNullException(nameof(args));
             }
 
-            NASPhotoSynchroniserImplementation worker = new();
+            NASPhotoSynchroniserService worker = new();
             worker.DoWork();
         }
     }

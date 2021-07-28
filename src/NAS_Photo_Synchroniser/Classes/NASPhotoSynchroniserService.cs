@@ -8,7 +8,7 @@ using System.Text;
 
 namespace NAS_Photo_Synchroniser.Classes
 {
-    public class NASPhotoSynchroniserImplementation : INASPhotoSynchroniserImplementation
+    public class NASPhotoSynchroniserService : INASPhotoSynchroniserService
     {
         private static readonly StringBuilder logMessage = new();
 
@@ -68,13 +68,6 @@ namespace NAS_Photo_Synchroniser.Classes
                 throw new Exception("AppSettings 'DestinationFolder' is empty or missing form configuration");
             }
 
-            LocalSettings.AcceptedFiles = ConfigurationManager.AppSettings["AcceptedFiles"]?.Split(";").ToList();
-
-            if (LocalSettings.AcceptedFiles == null || LocalSettings.AcceptedFiles.Count == 0)
-            {
-                throw new Exception("AppSettings 'AcceptedFiles' is empty or missing from configuration");
-            }
-
             LocalSettings.ShouldDeleteFolders = ConfigurationManager.AppSettings["ShouldDeleteFolders"].Equals("True", StringComparison.OrdinalIgnoreCase);
             LocalSettings.ExludedFolders = ConfigurationManager.AppSettings["ExcludedFolders"]?.Split(";")?.ToList();
         }
@@ -123,15 +116,6 @@ namespace NAS_Photo_Synchroniser.Classes
         {
             LogMessage("Exclude excluded folders from initial list");
             LocalSettings.ExludedFolders.ForEach(x => foldersToProcess.Remove(Path.Combine(LocalSettings.SourceFolder, x)));
-        }
-
-        /// <summary>
-        /// Exclude all uneeded files from list
-        /// </summary>
-        /// <param name="files"></param>
-        private static void ExcludeUneededFilesFromList(List<string> files)
-        {
-
         }
 
         /// <summary>
