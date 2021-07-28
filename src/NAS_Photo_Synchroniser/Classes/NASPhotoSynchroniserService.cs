@@ -139,11 +139,19 @@ namespace NAS_Photo_Synchroniser.Classes
                 }
 
                 LogMessage($"Moving file {file} to {Path.Combine(LocalSettings.DestinationFolder, fileCreationYear)}");
-                File.Move(file, fileDestination);
+
+                if (!File.Exists(fileDestination))
+                {
+                    File.Move(file, fileDestination);
+                }
+                else
+                {
+                    LogMessage($"File {file} already exists in destination folder and cannot be moved");
+                }
             }
 
-            if (Directory.GetFiles(folder).Length == 0 && 
-                Directory.GetDirectories(folder).Length == 0 && 
+            if (Directory.GetFiles(folder).Length == 0 &&
+                Directory.GetDirectories(folder).Length == 0 &&
                 LocalSettings.ShouldDeleteFolders)
             {
                 LogMessage($"folder {folder} is empty, deleting folder");
