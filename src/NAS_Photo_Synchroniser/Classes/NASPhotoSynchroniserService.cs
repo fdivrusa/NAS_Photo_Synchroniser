@@ -138,7 +138,7 @@ namespace NAS_Photo_Synchroniser.Classes
                     Directory.CreateDirectory(Path.Combine(LocalSettings.DestinationFolder, fileCreationYear));
                 }
 
-                LogMessage($"Moving file {file} to {LocalSettings.DestinationFolder}");
+                LogMessage($"Moving file {file} to {Path.Combine(LocalSettings.DestinationFolder, fileCreationYear)}");
                 File.Move(file, fileDestination);
             }
 
