@@ -44,6 +44,7 @@ namespace NAS_Photo_Synchroniser.Classes
             {
                 LogMessage($"Ending process at {DateTime.Now}");
                 File.WriteAllText(Path.Combine(Directory.GetCurrentDirectory(), $"NasPhotoSynchroniser_Logs_{DateTime.Now:yyyyMMdd_hhmmss}.txt"), logMessage.ToString());
+                Console.ReadLine();
             }
         }
 
